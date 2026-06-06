@@ -1,0 +1,49 @@
+name: Daily Options Data Collector
+
+on:
+  schedule:
+    # 4:30pm ET = 21:30 UTC (EST, Nov-Mar) / 20:30 UTC (EDT, Mar-Nov)
+    # Running at BOTH times ensures year-round coverage regardless of DST
+    - cron: "30 20 * * 1-5"   # 4:30pm EDT  (Mar–Nov)
+    - cron: "30 21 * * 1-5"   # 4:30pm EST  (Nov–Mar)
+  workflow_dispatch:            # allows manual trigger from GitHub UI
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write           # needed to commit CSV files back to repo
+
+    steps:
+      # 1 — Check out the repo (including any previously saved data)
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # 2 — Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # 3 — Install dependencies
+      - name: Install dependencies
+        run: pip install yfinance pandas numpy scipy
+
+      # 4 — Run the collector
+      - name: Collect options data
+        run: python collect_options_data.py
+        env:
+          PYTHONUNBUFFERED: "1"   # ensures logs print in real time
+
+      # 5 — Commit and push any new CSV files back to the repo
+      - name: Commit new data
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          # Only commit if there's actually something new
+          git diff --cached --quiet || git commit -m "data: $(date +'%Y-%m-%d') options snapshot"
+          git push
