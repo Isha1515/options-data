@@ -185,11 +185,11 @@ def fetch_risk_free_rate() -> float:
         hist = tbill.history(period="5d")
         if not hist.empty:
             rate = hist['Close'].iloc[-1] / 100
-            log.info(f"Risk-free rate fetched: {rate:.4f} ({rate*100:.2f}%)")
+            logger.info(f"Risk-free rate fetched: {rate:.4f} ({rate*100:.2f}%)")
             return rate
     except Exception:
         pass
-    log.info(f"Using default risk-free rate: {RISK_FREE_RATE:.4f}")
+    logger.info(f"Using default risk-free rate: {RISK_FREE_RATE:.4f}")
     return RISK_FREE_RATE
 
 
@@ -207,14 +207,14 @@ def fetch_option_chain(symbol: str, today: date, risk_free: float) -> Optional[p
         if not spot:
             hist = tk.history(period="2d")
             if hist.empty:
-                log.warning(f"  {symbol}: Could not get spot price, skipping")
+                logger.warning(f"  {symbol}: Could not get spot price, skipping")
                 return None
             spot = hist['Close'].iloc[-1]
 
         # Get all expirations
         expirations = tk.options
         if not expirations:
-            log.warning(f"  {symbol}: No expirations available")
+            logger.warning(f"  {symbol}: No expirations available")
             return None
 
         rows = []
@@ -230,7 +230,7 @@ def fetch_option_chain(symbol: str, today: date, risk_free: float) -> Optional[p
             try:
                 chain = tk.option_chain(exp_str)
             except Exception as e:
-                log.debug(f"  {symbol} {exp_str}: chain fetch failed — {e}")
+                logger.debug(f"  {symbol} {exp_str}: chain fetch failed — {e}")
                 continue
 
             for opt_type, df in [('call', chain.calls), ('put', chain.puts)]:
@@ -280,7 +280,7 @@ def fetch_option_chain(symbol: str, today: date, risk_free: float) -> Optional[p
                         'delta':              greeks['delta'],
                         'gamma':              greeks['gamma'],
                         'theta':              greeks['theta'],
-                        'vega':              greeks['vega'],
+                        'vega':               greeks['vega'],
                         'dte':                dte,
                         'underlying_price':   round(spot, 4),
                         'volume':             int(volume) if not pd.isna(volume) else 0,
@@ -288,17 +288,17 @@ def fetch_option_chain(symbol: str, today: date, risk_free: float) -> Optional[p
                     })
 
         if not rows:
-            log.warning(f"  {symbol}: No valid option rows in DTE range {DTE_MIN}-{DTE_MAX}")
+            logger.warning(f"  {symbol}: No valid option rows in DTE range {DTE_MIN}-{DTE_MAX}")
             return None
 
         df_out = pd.DataFrame(rows)
-        log.info(f"  {symbol}: {len(df_out):>5,} rows  |  "
-                 f"{df_out['expiration'].nunique()} expirations  |  "
-                 f"spot=${spot:.2f}")
+        logger.info(f"  {symbol}: {len(df_out):>5,} rows  |  "
+                    f"{df_out['expiration'].nunique()} expirations  |  "
+                    f"spot=${spot:.2f}")
         return df_out
 
     except Exception as e:
-        log.error(f"  {symbol}: Unexpected error — {e}")
+        logger.error(f"  {symbol}: Unexpected error — {e}")
         return None
 
 
@@ -311,11 +311,10 @@ def add_iv_rank(df: pd.DataFrame, symbol: str, data_dir: str) -> pd.DataFrame:
 
     if pd.isna(iv_rank):
         days_needed = IV_RANK_WINDOW - len(iv_history)
-        log.info(f"  {symbol}: IV Rank = N/A (need ~{max(0,days_needed)} more trading days of history)")
+        logger.info(f"  {symbol}: IV Rank = N/A (need ~{max(0,days_needed)} more trading days of history)")
         iv_rank = np.nan
-
     else:
-        log.info(f"  {symbol}: IV Rank = {iv_rank:.1f}  |  Current IV = {current_iv:.1f}%")
+        logger.info(f"  {symbol}: IV Rank = {iv_rank:.1f}  |  Current IV = {current_iv:.1f}%")
 
     df['iv_rank'] = round(iv_rank, 2) if not pd.isna(iv_rank) else np.nan
     return df
@@ -330,7 +329,7 @@ def save_data(df: pd.DataFrame, symbol: str, today: date, data_dir: str):
 
     filepath = os.path.join(sym_dir, f"{today.strftime('%Y-%m-%d')}.csv")
     df.to_csv(filepath, index=False)
-    log.info(f"  {symbol}: Saved → {filepath}")
+    logger.info(f"  {symbol}: Saved → {filepath}")
 
 
 # ─── Summary ─────────────────────────────────────────────────────────────────
