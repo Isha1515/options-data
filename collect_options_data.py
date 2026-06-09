@@ -61,7 +61,7 @@ logging.basicConfig(
         logging.FileHandler("collector.log", mode='a')
     ]
 )
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 # ─── Black-Scholes Greeks ─────────────────────────────────────────────────────
 
