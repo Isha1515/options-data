@@ -41,8 +41,8 @@ jobs:
       # 5 — Commit and push any new CSV files back to the repo
       - name: Commit new data
         run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name  "Isha1515"
+          git config user.email "isha.p.3639@gmail.com"
           git add data/
           # Only commit if there's actually something new
           git diff --cached --quiet || git commit -m "data: $(date +'%Y-%m-%d') options snapshot"
